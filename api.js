@@ -1,5 +1,24 @@
-// api.js — tries server then local expansion
-const SERVER_URL = "http://localhost:3000/generateVariants";
+// api.js — uses a configured API server when available, then falls back to local expansion
+let variantServerNoticeShown = false;
+
+function getConfiguredApiBase() {
+  try {
+    const base = (
+      (typeof globalThis !== "undefined" && typeof globalThis.APHELION_API_BASE === "string" && globalThis.APHELION_API_BASE)
+      || (typeof localStorage !== "undefined" && localStorage.getItem("aphelionApiBase"))
+      || ""
+    );
+    return String(base || "").trim().replace(/\/$/, "");
+  } catch (error) {
+    return "";
+  }
+}
+
+function getVariantServerUrl() {
+  const base = getConfiguredApiBase();
+  if (!base) return "";
+  return /\/generateVariants$/i.test(base) ? base : `${base}/generateVariants`;
+}
 
 function normalizeSimple(s) {
   if (s == null) return "";
@@ -91,32 +110,40 @@ async function fetchWithTimeout(url, opts = {}, timeout = 2500) {
 
 export async function generateVariants(text) {
   const normalizedBase = normalizeSimple(text);
-  try {
-    const res = await fetchWithTimeout(SERVER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    }, 2500);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length) {
-        const dedup = [];
-        const seen = new Set();
-        dedup.push(normalizedBase);
-        seen.add(normalizedBase);
-        for (const v of data) {
-          const n = normalizeSimple(v);
-          if (!seen.has(n)) {
-            seen.add(n);
-            dedup.push(n);
+  const serverUrl = getVariantServerUrl();
+
+  if (serverUrl) {
+    try {
+      const res = await fetchWithTimeout(serverUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      }, 2500);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length) {
+          const dedup = [];
+          const seen = new Set();
+          dedup.push(normalizedBase);
+          seen.add(normalizedBase);
+          for (const v of data) {
+            const n = normalizeSimple(v);
+            if (!seen.has(n)) {
+              seen.add(n);
+              dedup.push(n);
+            }
           }
+          return dedup;
         }
-        return dedup;
+      }
+    } catch (e) {
+      if (!variantServerNoticeShown) {
+        variantServerNoticeShown = true;
+        console.info("[api] configured variant server unavailable; using built-in variant generator.");
       }
     }
-  } catch (e) {
-    console.warn("[api] server fallback:", e && e.message ? e.message : e);
   }
+
   const conf = expandConfusablesLocal(text, 30).map(normalizeSimple);
   const emoji = expandEmojiLocal(text, 60).map(normalizeSimple);
   const combined = [normalizedBase, ...conf, ...emoji];
