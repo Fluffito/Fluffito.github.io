@@ -141,26 +141,46 @@ async function storeLicenseInSupabase({ email, licenseKey }) {
     throw new Error("This runtime does not expose fetch(), so the Supabase insert cannot run.");
   }
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
+  const payload = [{ email, license_key: licenseKey }];
+  const commonHeaders = {
+    "Content-Type": "application/json",
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+  };
+
+  const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/licenses`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      ...commonHeaders,
       Prefer: "return=minimal"
     },
-    body: JSON.stringify([
-      {
-        email,
-        license_key: licenseKey
-      }
-    ])
+    body: JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`Supabase insert failed (${response.status}): ${details}`);
+  if (insertResponse.ok) {
+    return;
   }
+
+  if (insertResponse.status === 409 || insertResponse.status === 42501) {
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/licenses?email=eq.${encodeURIComponent(email)}`, {
+      method: "PATCH",
+      headers: {
+        ...commonHeaders,
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({ license_key: licenseKey })
+    });
+
+    if (updateResponse.ok) {
+      return;
+    }
+
+    const updateDetails = await updateResponse.text();
+    throw new Error(`Supabase update failed (${updateResponse.status}): ${updateDetails}`);
+  }
+
+  const details = await insertResponse.text();
+  throw new Error(`Supabase insert failed (${insertResponse.status}): ${details}`);
 }
 
 async function handler(req, res) {

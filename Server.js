@@ -254,6 +254,13 @@ function getBuyerReference(session) {
     || `paid-${Date.now()}`;
 }
 
+function getRequestOrigin(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || req.protocol || "http").split(",")[0].trim();
+  const forwardedHost = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  if (!forwardedHost) return "";
+  return `${forwardedProto}://${forwardedHost}`.replace(/\/$/, "");
+}
+
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
@@ -286,9 +293,11 @@ app.post("/create-checkout-session", async (req, res) => {
       return;
     }
 
+    const apiBase = getRequestOrigin(req) || `http://localhost:${PORT}`;
+
     const stripe = await stripeRequest("/checkout/sessions", "POST", {
       mode: plan.mode,
-      success_url: `${PUBLIC_SITE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${PUBLIC_SITE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}&api_base=${encodeURIComponent(apiBase)}`,
       cancel_url: `${PUBLIC_SITE_URL}/#pricing`,
       "line_items[0][price]": plan.priceId,
       "line_items[0][quantity]": "1",
