@@ -220,6 +220,11 @@ let imageProcessingScheduled = false;
 let imageBlockMode = "blur";
 let replacementImageUrl = "";
 let subscriptionPlan = "free";
+let blockSoundEnabled = false;
+let blockSoundDataUrl = "";
+let blockSoundVolume = 0.65;
+let lastBlockSoundAt = 0;
+let sharedAudioContext = null;
 const FREE_IMAGE_LIMIT = 50;
 const PLAN_UNLIMITED = "unlimited-bonk";
 
@@ -337,6 +342,86 @@ function isUnlimitedPlan() {
   return subscriptionPlan === PLAN_UNLIMITED;
 }
 
+function safeSoundUrl(value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v) || /^data:audio\//i.test(v)) return v;
+  return "";
+}
+
+function normalizeSoundVolume(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0.65;
+  return Math.max(0, Math.min(1, n));
+}
+
+function getSharedAudioContext() {
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return null;
+  if (!sharedAudioContext) {
+    try {
+      sharedAudioContext = new AudioCtor();
+    } catch (error) {
+      return null;
+    }
+  }
+  if (sharedAudioContext.state === "suspended") {
+    sharedAudioContext.resume().catch(() => {});
+  }
+  return sharedAudioContext;
+}
+
+function playDefaultBlockSound() {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(70, now + 0.16);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.02, blockSoundVolume * 0.35), now + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.2);
+}
+
+function playImageBlockSound() {
+  if (!blockSoundEnabled || !isUnlimitedPlan()) return;
+  const now = Date.now();
+  if (now - lastBlockSoundAt < 225) return;
+  lastBlockSoundAt = now;
+
+  if (blockSoundDataUrl) {
+    try {
+      const audio = new Audio(blockSoundDataUrl);
+      audio.volume = blockSoundVolume;
+      audio.play().catch(() => {
+        playDefaultBlockSound();
+      });
+      return;
+    } catch (error) {
+      // fall through to the default bonk
+    }
+  }
+
+  playDefaultBlockSound();
+}
+
+if (typeof window !== "undefined") {
+  ["pointerdown", "keydown"].forEach((eventName) => {
+    window.addEventListener(eventName, () => {
+      const ctx = getSharedAudioContext();
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+    }, { passive: true, capture: true });
+  });
+}
+
 function currentBlockedImageCount() {
   return document.querySelectorAll(`img[${IMAGE_PROCESSED_FLAG}="1"]`).length;
 }
@@ -436,13 +521,16 @@ function removeImageBlock(img) {
 
 function scanSingleImage(img) {
   if (!img || img.tagName !== "IMG") return;
+  const alreadyBlocked = img.getAttribute(IMAGE_PROCESSED_FLAG) === "1";
   if (isImageBlockedByPatterns(img)) {
-    const alreadyBlocked = img.getAttribute(IMAGE_PROCESSED_FLAG) === "1";
     if (!alreadyBlocked && !isUnlimitedPlan() && currentBlockedImageCount() >= FREE_IMAGE_LIMIT) {
       removeImageBlock(img);
       return;
     }
     applyImageBlock(img);
+    if (!alreadyBlocked) {
+      playImageBlockSound();
+    }
   } else {
     removeImageBlock(img);
   }
@@ -497,7 +585,16 @@ function queueAllImages(root = document) {
 
 function loadBlacklist(cb) {
   try {
-    chrome.storage.local.get(["blacklist", "censorGlyph", "imageBlockMode", "replacementImageUrl", "planTier"], res => {
+    chrome.storage.local.get([
+      "blacklist",
+      "censorGlyph",
+      "imageBlockMode",
+      "replacementImageUrl",
+      "planTier",
+      "imageBlockSoundEnabled",
+      "blockSoundDataUrl",
+      "blockSoundVolume"
+    ], res => {
       const raw = Array.isArray(res?.blacklist) ? res.blacklist : [];
       aphelionEntries = raw.map(normalizeEntryObject);
       rebuildImagePatterns();
@@ -505,7 +602,10 @@ function loadBlacklist(cb) {
       imageBlockMode = normalizeImageMode(res?.imageBlockMode);
       replacementImageUrl = safeReplacementUrl(res?.replacementImageUrl);
       subscriptionPlan = normalizePlanTier(res?.planTier);
-      log("loaded blacklist", aphelionEntries.length, "glyph:", censorGlyph, "plan:", subscriptionPlan);
+      blockSoundEnabled = Boolean(res?.imageBlockSoundEnabled);
+      blockSoundDataUrl = safeSoundUrl(res?.blockSoundDataUrl);
+      blockSoundVolume = normalizeSoundVolume(res?.blockSoundVolume);
+      log("loaded blacklist", aphelionEntries.length, "glyph:", censorGlyph, "plan:", subscriptionPlan, "sound:", blockSoundEnabled ? "on" : "off");
       if (worker) {
         try { worker.postMessage({ type: "updateBlacklist", blacklist: aphelionEntries }); }
         catch (err) { log("worker update failed", err); }
@@ -515,6 +615,9 @@ function loadBlacklist(cb) {
   } catch (e) {
     aphelionEntries = [];
     censorGlyph = "✦✦✦";
+    blockSoundEnabled = false;
+    blockSoundDataUrl = "";
+    blockSoundVolume = 0.65;
     log("loadBlacklist failed", e);
     if (typeof cb === "function") cb(aphelionEntries);
   }
@@ -751,7 +854,7 @@ function scheduleFullRescan(delay = 1000) {
 // storage change listener to reload patterns
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local") {
-    if (changes.blacklist || changes.censorGlyph || changes.imageBlockMode || changes.replacementImageUrl || changes.planTier) {
+    if (changes.blacklist || changes.censorGlyph || changes.imageBlockMode || changes.replacementImageUrl || changes.planTier || changes.imageBlockSoundEnabled || changes.blockSoundDataUrl || changes.blockSoundVolume) {
       loadBlacklist(() => {
         if (worker) try { worker.postMessage({ type: "updateBlacklist", blacklist: aphelionEntries }); } catch (e) {}
         scheduleFullRescan(50);
