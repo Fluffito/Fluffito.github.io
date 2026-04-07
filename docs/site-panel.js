@@ -183,6 +183,9 @@
       panelEl.classList.toggle("is-active", isActive);
       panelEl.hidden = !isActive;
     });
+    if (panel) {
+      panel.scrollTop = 0;
+    }
   }
 
   function openPanel() {

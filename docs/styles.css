@@ -168,9 +168,13 @@ body.panel-open {
 }
 
 .site-tab-panel {
-  display: grid;
+  display: none;
   gap: 12px;
   padding: 10px 0 2px;
+}
+
+.site-tab-panel.is-active {
+  display: grid;
 }
 
 .site-settings-form label {
