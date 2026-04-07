@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redirecting…</title>
+  <script>
+    (function () {
+      var target = new URL("./docs/index.html", window.location.origin + "/");
+      target.search = window.location.search;
+      target.hash = window.location.hash;
+      window.location.replace(target.toString());
+    })();
+  </script>
+</head>
+<body>
+  <p>This page moved. <a href="./docs/index.html">Open APHELION</a></p>
+</body>
+</html>
