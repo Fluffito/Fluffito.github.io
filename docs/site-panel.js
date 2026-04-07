@@ -6,7 +6,8 @@
     replacementImageUrl: "",
     imageBlockSoundEnabled: false,
     blockSoundDataUrl: "",
-    blockSoundVolume: 0.65
+    blockSoundVolume: 0.65,
+    planTier: ""
   };
 
   const menuToggle = document.getElementById("siteMenuToggle");
@@ -38,8 +39,9 @@
   const soundFile = document.getElementById("siteSoundFile");
   const status = document.getElementById("siteSettingsStatus");
   const testBonkBtn = document.getElementById("siteTestBonkBtn");
+  const PLAN_FREE = "free";
   const PLAN_UNLIMITED = "unlimited-bonk";
-  let currentPlanTier = "free";
+  let currentPlanTier = "";
   let syncTimer = null;
 
   if (!menuToggle || !menuClose || !overlay || !panel || !form || !tabButtons.length || !tabPanels.length || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !previewGlyph || !previewSummary || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !soundUrl || !soundDropzone || !soundPickerBtn || !soundResetBtn || !soundPreview || !soundFile || !status || !testBonkBtn) {
@@ -79,6 +81,10 @@
     return currentPlanTier === PLAN_UNLIMITED;
   }
 
+  function isKnownFreePlan() {
+    return currentPlanTier === PLAN_FREE;
+  }
+
   function promptPaidUpgrade(message, jumpToPricing = false) {
     soundEnabled.value = "off";
     setSoundPreview("");
@@ -99,7 +105,7 @@
         ? "replace"
         : "blur";
     const hasCustomSound = Boolean(String(soundUrl.value || soundPreview.getAttribute("src") || "").trim());
-    const soundLabel = !isUnlimitedPlan()
+    const soundLabel = isKnownFreePlan()
       ? "locked on the Free plan"
       : soundEnabled.value === "on"
         ? (hasCustomSound ? "on with your custom sound" : "on")
@@ -134,7 +140,7 @@
   }
 
   function openImagePicker() {
-    if (!isUnlimitedPlan()) {
+    if (isKnownFreePlan()) {
       promptPaidUpgrade("Custom replacement image uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       return;
     }
@@ -150,7 +156,7 @@
   }
 
   function openSoundPicker() {
-    if (!isUnlimitedPlan()) {
+    if (isKnownFreePlan()) {
       promptPaidUpgrade("Bonk sounds are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       return;
     }
@@ -182,7 +188,7 @@
   }
 
   function handleImageFile(file) {
-    if (!isUnlimitedPlan()) {
+    if (isKnownFreePlan()) {
       promptPaidUpgrade("Custom replacement image uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       return;
     }
@@ -214,7 +220,7 @@
   }
 
   function handleSoundFile(file) {
-    if (!isUnlimitedPlan()) {
+    if (isKnownFreePlan()) {
       promptPaidUpgrade("Custom bonk uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       return;
     }
@@ -246,7 +252,12 @@
   }
 
   function applySettings(settings) {
-    currentPlanTier = settings?.planTier === PLAN_UNLIMITED ? PLAN_UNLIMITED : "free";
+    const incomingPlanTier = settings?.planTier === PLAN_UNLIMITED
+      ? PLAN_UNLIMITED
+      : settings?.planTier === PLAN_FREE
+        ? PLAN_FREE
+        : "";
+    if (incomingPlanTier) currentPlanTier = incomingPlanTier;
     const glyphValue = String(settings.censorGlyph || DEFAULTS.censorGlyph).trim() || DEFAULTS.censorGlyph;
     const presetMatch = Array.from(censorGlyph.options).find((option) => option.value === glyphValue);
     censorGlyph.value = presetMatch ? presetMatch.value : DEFAULTS.censorGlyph;
@@ -274,7 +285,8 @@
       replacementImageUrl: safeReplacement,
       imageBlockSoundEnabled: isUnlimitedPlan() && soundEnabled.value === "on",
       blockSoundDataUrl: isUnlimitedPlan() ? safeSound : "",
-      blockSoundVolume: Math.max(0, Math.min(1, (Number(soundVolume.value) || 65) / 100))
+      blockSoundVolume: Math.max(0, Math.min(1, (Number(soundVolume.value) || 65) / 100)),
+      planTier: currentPlanTier
     };
   }
 
@@ -347,7 +359,7 @@
   }
 
   function playPreviewBonk() {
-    if (!isUnlimitedPlan()) {
+    if (isKnownFreePlan()) {
       promptPaidUpgrade("Bonk sounds are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       return;
     }
@@ -372,6 +384,7 @@
     if (msg.type === "APHELION_WEBSITE_SETTINGS" && msg.settings) {
       clearTimeout(syncTimer);
       const merged = { ...loadLocalSettings(), ...msg.settings };
+      saveLocalSettings(merged);
       applySettings(merged);
       setStatus("Connected to the installed APHELION extension.");
       return;
@@ -405,7 +418,7 @@
     element.addEventListener("input", () => syncSettings());
   });
   imageMode.addEventListener("change", () => {
-    if (imageMode.value === "replace" && !isUnlimitedPlan()) {
+    if (imageMode.value === "replace" && isKnownFreePlan()) {
       imageMode.value = "blur";
       promptPaidUpgrade("Custom replacement image mode is part of Unlimited Bonk. See Pricing Preview to unlock it.", true);
       syncSettings();
@@ -414,7 +427,7 @@
     syncSettings();
   });
   imageMode.addEventListener("input", () => {
-    if (imageMode.value === "replace" && !isUnlimitedPlan()) {
+    if (imageMode.value === "replace" && isKnownFreePlan()) {
       imageMode.value = "blur";
       promptPaidUpgrade("Custom replacement image mode is part of Unlimited Bonk. See Pricing Preview to unlock it.", true);
       syncSettings();
@@ -423,7 +436,7 @@
     syncSettings();
   });
   soundEnabled.addEventListener("change", () => {
-    if (soundEnabled.value === "on" && !isUnlimitedPlan()) {
+    if (soundEnabled.value === "on" && isKnownFreePlan()) {
       promptPaidUpgrade("Bonk sounds are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       syncSettings();
       return;
@@ -435,7 +448,7 @@
     syncSettings();
   });
   soundUrl.addEventListener("input", () => {
-    if (!isUnlimitedPlan() && soundUrl.value.trim()) {
+    if (isKnownFreePlan() && soundUrl.value.trim()) {
       promptPaidUpgrade("Custom bonk uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
       syncSettings();
       return;
@@ -447,7 +460,7 @@
   ["dragenter", "dragover"].forEach((eventName) => {
     imageDropzone.addEventListener(eventName, (event) => {
       event.preventDefault();
-      if (!isUnlimitedPlan()) {
+      if (isKnownFreePlan()) {
         promptPaidUpgrade("Custom replacement image uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
         return;
       }
