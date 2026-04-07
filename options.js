@@ -3,6 +3,62 @@
 if (typeof globalThis.chrome === "undefined" && typeof globalThis.browser !== "undefined") {
   globalThis.chrome = globalThis.browser;
 }
+if (typeof globalThis.browser !== "undefined" && globalThis.chrome === globalThis.browser) {
+  const runtime = globalThis.chrome && globalThis.chrome.runtime;
+  let shimLastError = null;
+
+  if (runtime && !Object.getOwnPropertyDescriptor(runtime, "lastError")) {
+    Object.defineProperty(runtime, "lastError", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return shimLastError;
+      }
+    });
+  }
+
+  const setLastError = (error) => {
+    shimLastError = error ? { message: error.message || String(error) } : null;
+  };
+
+  const wrapWebExtensionMethod = (target, methodName) => {
+    if (!target || typeof target[methodName] !== "function") return;
+    const original = target[methodName].bind(target);
+    target[methodName] = (...args) => {
+      const maybeCallback = args[args.length - 1];
+      if (typeof maybeCallback !== "function") {
+        return original(...args);
+      }
+
+      const callback = args.pop();
+      setLastError(null);
+
+      try {
+        const result = original(...args);
+        if (result && typeof result.then === "function") {
+          result.then((value) => {
+            callback(value);
+            setTimeout(() => setLastError(null), 0);
+          }).catch((error) => {
+            setLastError(error);
+            callback();
+            setTimeout(() => setLastError(null), 0);
+          });
+          return;
+        }
+        callback(result);
+        setTimeout(() => setLastError(null), 0);
+      } catch (error) {
+        setLastError(error);
+        callback();
+        setTimeout(() => setLastError(null), 0);
+      }
+    };
+  };
+
+  wrapWebExtensionMethod(globalThis.chrome.storage && globalThis.chrome.storage.local, "get");
+  wrapWebExtensionMethod(globalThis.chrome.storage && globalThis.chrome.storage.local, "set");
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   const PLAN_FREE = "free";
