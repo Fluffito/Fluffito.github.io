@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateSoundNote() {
     soundPlanNote.textContent = currentPlanTier === PLAN_UNLIMITED
-      ? "Unlimited Bonk active. Your image bonk sound is live."
+      ? "Unlimited Bonk active. Your bonk sound is live for word and image blocks."
       : "Only active on Unlimited Bonk ($5 plan). You can still preload your sound here.";
   }
 

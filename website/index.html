@@ -7,6 +7,60 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <button id="siteMenuToggle" class="site-menu-toggle" type="button" aria-label="Open APHELION settings">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+  <div id="siteMenuOverlay" class="site-menu-overlay" hidden></div>
+  <aside id="siteMenuPanel" class="site-menu-panel" aria-hidden="true" hidden>
+    <div class="site-menu-header">
+      <div>
+        <p class="site-menu-eyebrow">APHELION</p>
+        <h2>Web Control Panel</h2>
+        <p>Adjust your preferred blocking style from the website. If the extension is installed, these settings sync over automatically.</p>
+      </div>
+      <button id="siteMenuClose" class="site-menu-close" type="button" aria-label="Close settings">×</button>
+    </div>
+
+    <form id="siteSettingsForm" class="site-settings-form">
+      <label for="siteCensorGlyph">Censor style</label>
+      <select id="siteCensorGlyph">
+        <option value="✦✦✦">Stars (✦✦✦)</option>
+        <option value="****">Asterisks (****)</option>
+        <option value="[CENSORED]">[CENSORED]</option>
+        <option value="░░░░">Blocks (░░░░)</option>
+        <option value="🚫">No Entry (🚫)</option>
+      </select>
+
+      <label for="siteImageMode">Image blocking</label>
+      <select id="siteImageMode">
+        <option value="blur">Blur blocked images</option>
+        <option value="hide">Hide blocked images</option>
+        <option value="replace">Replace blocked images</option>
+      </select>
+
+      <label for="siteSoundEnabled">Bonk sounds</label>
+      <select id="siteSoundEnabled">
+        <option value="off">Off</option>
+        <option value="on">Play for word and image blocks</option>
+      </select>
+
+      <label for="siteSoundVolume">Bonk volume <span id="siteSoundVolumeValue">65%</span></label>
+      <input id="siteSoundVolume" type="range" min="0" max="100" step="1" value="65" />
+
+      <label for="siteApiBase">Server URL (optional)</label>
+      <input id="siteApiBase" type="text" placeholder="https://your-vercel-domain" autocomplete="off" />
+
+      <div class="site-settings-actions">
+        <button class="btn btn-primary" type="submit">Save on web</button>
+        <button id="siteTestBonkBtn" class="btn btn-secondary" type="button">Test bonk</button>
+      </div>
+
+      <p id="siteSettingsStatus" class="site-settings-status">These controls save on the website and sync if APHELION is installed.</p>
+    </form>
+  </aside>
+
   <div class="page-shell">
     <header class="hero">
       <span class="eyebrow">APHELION</span>
@@ -114,5 +168,6 @@
     </footer>
   </div>
   <script src="checkout.js"></script>
+  <script src="site-panel.js"></script>
 </body>
 </html>

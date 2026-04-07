@@ -157,10 +157,10 @@
   </div>
   <input type="file" id="replacementImageFile" accept="image/*" style="display:none" />
 
-  <label for="imageBlockSoundEnabled">Blocked Image Sound:</label>
+  <label for="imageBlockSoundEnabled">Bonk Sound Effects:</label>
   <select id="imageBlockSoundEnabled">
     <option value="off">Off</option>
-    <option value="on">Play a bonk sound when an image is blocked</option>
+    <option value="on">Play a bonk sound when words or images are blocked</option>
   </select>
 
   <label for="blockSoundVolume">Sound Volume: <span id="blockSoundVolumeValue">65%</span></label>
@@ -177,7 +177,7 @@
     <audio id="soundPreview" class="preview audio-preview" controls preload="metadata"></audio>
   </div>
   <input type="file" id="blockSoundFile" accept="audio/*" style="display:none" />
-  <div id="soundPlanNote" class="status plan-note" aria-live="polite">Only active on Unlimited Bonk.</div>
+  <div id="soundPlanNote" class="status plan-note" aria-live="polite">Only active on Unlimited Bonk, and it works for both word and image blocks.</div>
 
   <button id="saveBtn">Save Settings</button>
   <div id="status" class="status" aria-live="polite"></div>

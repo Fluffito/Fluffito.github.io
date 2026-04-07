@@ -780,6 +780,7 @@ function applyMatchesToNode(textNode, matches) {
   if (!matches || !matches.length) return;
   const original = textNode.nodeValue;
   log("applyMatchesToNode", original.slice(0,80), matches);
+  playImageBlockSound();
   matches.sort((a, b) => a.start - b.start);
   const merged = [];
   for (const m of matches) {
@@ -919,6 +920,63 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 });
+
+if (typeof window !== "undefined") {
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    const msg = event.data;
+    if (!msg || typeof msg !== "object" || msg.sender !== "aphelion-site-panel") return;
+
+    if (msg.type === "APHELION_WEBSITE_GET_SETTINGS") {
+      chrome.storage.local.get([
+        "censorGlyph",
+        "imageBlockMode",
+        "imageBlockSoundEnabled",
+        "blockSoundVolume",
+        "planTier"
+      ], (res) => {
+        window.postMessage({
+          sender: "aphelion-extension",
+          type: "APHELION_WEBSITE_SETTINGS",
+          settings: {
+            censorGlyph: typeof res?.censorGlyph === "string" ? res.censorGlyph : "✦✦✦",
+            imageBlockMode: normalizeImageMode(res?.imageBlockMode),
+            imageBlockSoundEnabled: Boolean(res?.imageBlockSoundEnabled),
+            blockSoundVolume: normalizeSoundVolume(res?.blockSoundVolume),
+            planTier: normalizePlanTier(res?.planTier)
+          }
+        }, "*");
+      });
+      return;
+    }
+
+    if (msg.type === "APHELION_WEBSITE_SAVE_SETTINGS") {
+      const settings = msg.settings && typeof msg.settings === "object" ? msg.settings : {};
+      const payload = {
+        censorGlyph: typeof settings.censorGlyph === "string" && settings.censorGlyph.trim() ? settings.censorGlyph.trim().slice(0, 20) : "✦✦✦",
+        imageBlockMode: normalizeImageMode(settings.imageBlockMode),
+        imageBlockSoundEnabled: Boolean(settings.imageBlockSoundEnabled),
+        blockSoundVolume: normalizeSoundVolume(settings.blockSoundVolume)
+      };
+
+      chrome.storage.local.set(payload, () => {
+        const errorMessage = chrome.runtime.lastError ? (chrome.runtime.lastError.message || "SYNC_FAILED") : "";
+        window.postMessage({
+          sender: "aphelion-extension",
+          type: "APHELION_WEBSITE_SYNC_ACK",
+          ok: !errorMessage,
+          error: errorMessage
+        }, "*");
+
+        if (!errorMessage) {
+          loadBlacklist(() => {
+            scheduleFullRescan(50);
+          });
+        }
+      });
+    }
+  });
+}
 
 // bootstrap
 injectStyles();
