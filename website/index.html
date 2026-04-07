@@ -42,6 +42,12 @@
 
         <label for="siteCustomGlyph">Custom censor text</label>
         <input id="siteCustomGlyph" type="text" placeholder="e.g. [BLOCKED]" maxlength="20" autocomplete="off" />
+
+        <div class="site-live-preview">
+          <p class="site-live-preview-label">Live preview</p>
+          <div class="site-live-preview-chip">Blocked word → <span id="sitePreviewGlyph">✦✦✦</span></div>
+          <p id="sitePreviewSummary" class="site-live-preview-copy">Images will blur and bonk sounds are off.</p>
+        </div>
       </section>
 
       <section class="site-tab-panel" data-panel="images" role="tabpanel" hidden>

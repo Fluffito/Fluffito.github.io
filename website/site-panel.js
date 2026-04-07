@@ -19,6 +19,8 @@
   const customGlyph = document.getElementById("siteCustomGlyph");
   const imageMode = document.getElementById("siteImageMode");
   const replacementImageUrl = document.getElementById("siteReplacementImageUrl");
+  const previewGlyph = document.getElementById("sitePreviewGlyph");
+  const previewSummary = document.getElementById("sitePreviewSummary");
   const imageDropzone = document.getElementById("siteImageDropzone");
   const imagePickerBtn = document.getElementById("siteImagePickerBtn");
   const imageResetBtn = document.getElementById("siteImageResetBtn");
@@ -31,7 +33,7 @@
   const testBonkBtn = document.getElementById("siteTestBonkBtn");
   let syncTimer = null;
 
-  if (!menuToggle || !menuClose || !overlay || !panel || !form || !tabButtons.length || !tabPanels.length || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !status || !testBonkBtn) {
+  if (!menuToggle || !menuClose || !overlay || !panel || !form || !tabButtons.length || !tabPanels.length || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !previewGlyph || !previewSummary || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !status || !testBonkBtn) {
     return;
   }
 
@@ -62,6 +64,34 @@
   function updateVolumeLabel() {
     const percent = Math.max(0, Math.min(100, Number(soundVolume.value) || 65));
     soundVolumeValue.textContent = `${percent}%`;
+  }
+
+  function updateLivePreview() {
+    const glyph = String(customGlyph.value || censorGlyph.value || DEFAULTS.censorGlyph).trim() || DEFAULTS.censorGlyph;
+    previewGlyph.textContent = glyph;
+
+    const imageLabel = imageMode.value === "hide"
+      ? "hide"
+      : imageMode.value === "replace"
+        ? "replace"
+        : "blur";
+    const soundLabel = soundEnabled.value === "on" ? "on" : "off";
+    previewSummary.textContent = `Images will ${imageLabel} and bonk sounds are ${soundLabel}.`;
+  }
+
+  function syncSettings(showMessage = false) {
+    const settings = readFormSettings();
+    saveLocalSettings(settings);
+    updateLivePreview();
+    if (showMessage) {
+      setStatus("Saved on the website. Trying to sync to APHELION...");
+      startSyncTimeout("Saved on the website. Install or refresh APHELION here to sync these settings into the extension.");
+    }
+    window.postMessage({
+      sender: "aphelion-site-panel",
+      type: "APHELION_WEBSITE_SAVE_SETTINGS",
+      settings
+    }, "*");
   }
 
   function setImagePreview(src) {
@@ -107,7 +137,9 @@
       replacementImageUrl.value = dataUrl;
       imageMode.value = "replace";
       setImagePreview(dataUrl);
-      setStatus("Image loaded. Save to apply it on APHELION.");
+      updateLivePreview();
+      setStatus("Image loaded. It will sync to APHELION now.");
+      syncSettings();
     };
     reader.onerror = () => setStatus("Failed to read the selected image file.");
     reader.readAsDataURL(file);
@@ -124,6 +156,7 @@
     soundEnabled.value = settings.imageBlockSoundEnabled ? "on" : "off";
     soundVolume.value = String(Math.max(0, Math.min(100, Math.round((Number(settings.blockSoundVolume) || DEFAULTS.blockSoundVolume) * 100))));
     updateVolumeLabel();
+    updateLivePreview();
   }
 
   function readFormSettings() {
@@ -232,9 +265,17 @@
   menuToggle.addEventListener("click", openPanel);
   menuClose.addEventListener("click", closePanel);
   overlay.addEventListener("click", closePanel);
-  soundVolume.addEventListener("input", updateVolumeLabel);
+  soundVolume.addEventListener("input", () => {
+    updateVolumeLabel();
+    syncSettings();
+  });
+  [censorGlyph, customGlyph, imageMode, soundEnabled].forEach((element) => {
+    element.addEventListener("change", () => syncSettings());
+    element.addEventListener("input", () => syncSettings());
+  });
   replacementImageUrl.addEventListener("input", () => {
     setImagePreview(replacementImageUrl.value.trim());
+    syncSettings();
   });
 
   ["dragenter", "dragover"].forEach((eventName) => {
@@ -275,7 +316,9 @@
     event.stopPropagation();
     replacementImageUrl.value = "";
     setImagePreview("");
+    updateLivePreview();
     setStatus("Custom replacement image cleared.");
+    syncSettings();
   });
   imageFile.addEventListener("change", (event) => {
     const file = event.target.files && event.target.files[0];
@@ -291,15 +334,7 @@
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    const settings = readFormSettings();
-    saveLocalSettings(settings);
-    setStatus("Saved on the website. Trying to sync to APHELION...");
-    startSyncTimeout("Saved on the website. Install or refresh APHELION here to sync these settings into the extension.");
-    window.postMessage({
-      sender: "aphelion-site-panel",
-      type: "APHELION_WEBSITE_SAVE_SETTINGS",
-      settings
-    }, "*");
+    syncSettings(true);
   });
 
   setActiveTab("general");
