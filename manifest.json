@@ -49,8 +49,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "icons/*",
-        "aphelion-censor-style.css"
+        "icons/*"
       ],
       "matches": [
         "https://*/*",

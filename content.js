@@ -1087,7 +1087,8 @@ if (typeof window !== "undefined") {
             sender: "aphelion-extension",
             type: "APHELION_WEBSITE_SYNC_ACK",
             ok: !errorMessage,
-            error: errorMessage
+            error: errorMessage,
+            planTier
           }, "*");
 
           if (!runtimeError) {

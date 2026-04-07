@@ -42,6 +42,7 @@
   const PLAN_FREE = "free";
   const PLAN_UNLIMITED = "unlimited-bonk";
   let currentPlanTier = PLAN_FREE;
+  let hasConfirmedExtensionPlan = false;
   let syncTimer = null;
 
   if (!menuToggle || !menuClose || !overlay || !panel || !form || !tabButtons.length || !tabPanels.length || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !previewGlyph || !previewSummary || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !soundUrl || !soundDropzone || !soundPickerBtn || !soundResetBtn || !soundPreview || !soundFile || !status || !testBonkBtn) {
@@ -81,8 +82,15 @@
     return currentPlanTier === PLAN_UNLIMITED;
   }
 
+  function confirmPlanTier(planTier) {
+    if (planTier === PLAN_UNLIMITED || planTier === PLAN_FREE) {
+      currentPlanTier = planTier;
+      hasConfirmedExtensionPlan = true;
+    }
+  }
+
   function isKnownFreePlan() {
-    return currentPlanTier === PLAN_FREE;
+    return hasConfirmedExtensionPlan && currentPlanTier === PLAN_FREE;
   }
 
   function promptPaidUpgrade(message, jumpToPricing = false) {
@@ -256,13 +264,18 @@
     reader.readAsDataURL(file);
   }
 
-  function applySettings(settings) {
+  function applySettings(settings, confirmPlan = false) {
     const incomingPlanTier = settings?.planTier === PLAN_UNLIMITED
       ? PLAN_UNLIMITED
       : settings?.planTier === PLAN_FREE
         ? PLAN_FREE
         : "";
-    if (incomingPlanTier) currentPlanTier = incomingPlanTier;
+    if (incomingPlanTier) {
+      currentPlanTier = incomingPlanTier;
+      if (confirmPlan) {
+        hasConfirmedExtensionPlan = true;
+      }
+    }
     const glyphValue = String(settings.censorGlyph || DEFAULTS.censorGlyph).trim() || DEFAULTS.censorGlyph;
     const presetMatch = Array.from(censorGlyph.options).find((option) => option.value === glyphValue);
     censorGlyph.value = presetMatch ? presetMatch.value : DEFAULTS.censorGlyph;
@@ -388,15 +401,17 @@
 
     if (msg.type === "APHELION_WEBSITE_SETTINGS" && msg.settings) {
       clearTimeout(syncTimer);
-      const merged = { ...loadLocalSettings(), ...msg.settings };
+      confirmPlanTier(msg.settings.planTier);
+      const merged = { ...loadLocalSettings(), ...msg.settings, planTier: currentPlanTier || msg.settings.planTier };
       saveLocalSettings(merged);
-      applySettings(merged);
+      applySettings(merged, true);
       setStatus("Connected to the installed APHELION extension.");
       return;
     }
 
     if (msg.type === "APHELION_WEBSITE_SYNC_ACK") {
       clearTimeout(syncTimer);
+      confirmPlanTier(msg.planTier);
       if (!msg.ok && /PAID_FEATURE_REQUIRES_UNLIMITED_BONK/i.test(String(msg.error || ""))) {
         promptPaidUpgrade("Bonk sounds are locked on the Free plan. See Pricing Preview to unlock them.", true);
         return;
