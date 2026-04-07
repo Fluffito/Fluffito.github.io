@@ -17,6 +17,11 @@
   const customGlyph = document.getElementById("siteCustomGlyph");
   const imageMode = document.getElementById("siteImageMode");
   const replacementImageUrl = document.getElementById("siteReplacementImageUrl");
+  const imageDropzone = document.getElementById("siteImageDropzone");
+  const imagePickerBtn = document.getElementById("siteImagePickerBtn");
+  const imageResetBtn = document.getElementById("siteImageResetBtn");
+  const imagePreview = document.getElementById("siteImagePreview");
+  const imageFile = document.getElementById("siteImageFile");
   const soundEnabled = document.getElementById("siteSoundEnabled");
   const soundVolume = document.getElementById("siteSoundVolume");
   const soundVolumeValue = document.getElementById("siteSoundVolumeValue");
@@ -24,7 +29,7 @@
   const testBonkBtn = document.getElementById("siteTestBonkBtn");
   let syncTimer = null;
 
-  if (!menuToggle || !menuClose || !overlay || !panel || !form || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !soundEnabled || !soundVolume || !soundVolumeValue || !status || !testBonkBtn) {
+  if (!menuToggle || !menuClose || !overlay || !panel || !form || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !status || !testBonkBtn) {
     return;
   }
 
@@ -57,6 +62,43 @@
     soundVolumeValue.textContent = `${percent}%`;
   }
 
+  function setImagePreview(src) {
+    const value = String(src || "").trim();
+    if (value && (/^https?:\/\//i.test(value) || /^data:image\//i.test(value))) {
+      imagePreview.src = value;
+      imagePreview.style.display = "block";
+      return;
+    }
+    imagePreview.removeAttribute("src");
+    imagePreview.style.display = "none";
+  }
+
+  function handleImageFile(file) {
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("image/")) {
+      setStatus("Please choose an image file.");
+      return;
+    }
+    if (file.size > 1_500_000) {
+      setStatus("Image is too large. Use an image under 1.5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : "";
+      if (!dataUrl.startsWith("data:image/")) {
+        setStatus("Could not read that image. Try another one.");
+        return;
+      }
+      replacementImageUrl.value = dataUrl;
+      imageMode.value = "replace";
+      setImagePreview(dataUrl);
+      setStatus("Image loaded. Save to apply it on APHELION.");
+    };
+    reader.onerror = () => setStatus("Failed to read the selected image file.");
+    reader.readAsDataURL(file);
+  }
+
   function applySettings(settings) {
     const glyphValue = String(settings.censorGlyph || DEFAULTS.censorGlyph).trim() || DEFAULTS.censorGlyph;
     const presetMatch = Array.from(censorGlyph.options).find((option) => option.value === glyphValue);
@@ -64,6 +106,7 @@
     customGlyph.value = presetMatch ? "" : glyphValue;
     imageMode.value = ["blur", "hide", "replace"].includes(settings.imageBlockMode) ? settings.imageBlockMode : DEFAULTS.imageBlockMode;
     replacementImageUrl.value = typeof settings.replacementImageUrl === "string" ? settings.replacementImageUrl : "";
+    setImagePreview(replacementImageUrl.value);
     soundEnabled.value = settings.imageBlockSoundEnabled ? "on" : "off";
     soundVolume.value = String(Math.max(0, Math.min(100, Math.round((Number(settings.blockSoundVolume) || DEFAULTS.blockSoundVolume) * 100))));
     updateVolumeLabel();
@@ -157,6 +200,50 @@
   menuClose.addEventListener("click", closePanel);
   overlay.addEventListener("click", closePanel);
   soundVolume.addEventListener("input", updateVolumeLabel);
+  replacementImageUrl.addEventListener("input", () => {
+    setImagePreview(replacementImageUrl.value.trim());
+  });
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    imageDropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      imageDropzone.classList.add("dragover");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    imageDropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      imageDropzone.classList.remove("dragover");
+    });
+  });
+
+  imageDropzone.addEventListener("drop", (event) => {
+    const files = event.dataTransfer && event.dataTransfer.files;
+    if (files && files[0]) handleImageFile(files[0]);
+  });
+  imageDropzone.addEventListener("click", () => imageFile.click());
+  imageDropzone.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      imageFile.click();
+    }
+  });
+  imagePickerBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    imageFile.click();
+  });
+  imageResetBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    replacementImageUrl.value = "";
+    setImagePreview("");
+    setStatus("Custom replacement image cleared.");
+  });
+  imageFile.addEventListener("change", (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (file) handleImageFile(file);
+    imageFile.value = "";
+  });
   testBonkBtn.addEventListener("click", playPreviewBonk);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && panel.classList.contains("is-open")) {

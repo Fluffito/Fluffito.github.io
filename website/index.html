@@ -43,8 +43,18 @@
         <option value="replace">Replace blocked images</option>
       </select>
 
-      <label for="siteReplacementImageUrl">Custom replacement image URL</label>
+      <label for="siteReplacementImageUrl">Custom replacement image</label>
       <input id="siteReplacementImageUrl" type="text" placeholder="https://example.com/placeholder.png or data:image/..." autocomplete="off" />
+      <div id="siteImageDropzone" class="site-image-dropzone" tabindex="0" role="button" aria-label="Upload replacement image">
+        Drag and drop an image here
+        <small>or click to choose a file (PNG, JPG, WEBP, GIF)</small>
+        <div class="site-settings-actions">
+          <button id="siteImagePickerBtn" class="btn btn-secondary" type="button">Choose image file</button>
+          <button id="siteImageResetBtn" class="btn btn-secondary" type="button">Reset image</button>
+        </div>
+        <img id="siteImagePreview" class="site-image-preview" alt="Replacement image preview" />
+      </div>
+      <input id="siteImageFile" type="file" accept="image/*" hidden />
 
       <label for="siteSoundEnabled">Bonk sounds</label>
       <select id="siteSoundEnabled">
