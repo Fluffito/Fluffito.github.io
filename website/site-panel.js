@@ -400,9 +400,27 @@
     updateVolumeLabel();
     syncSettings();
   });
-  [censorGlyph, customGlyph, imageMode].forEach((element) => {
+  [censorGlyph, customGlyph].forEach((element) => {
     element.addEventListener("change", () => syncSettings());
     element.addEventListener("input", () => syncSettings());
+  });
+  imageMode.addEventListener("change", () => {
+    if (imageMode.value === "replace" && !isUnlimitedPlan()) {
+      imageMode.value = "blur";
+      promptPaidUpgrade("Custom replacement image mode is part of Unlimited Bonk. See Pricing Preview to unlock it.", true);
+      syncSettings();
+      return;
+    }
+    syncSettings();
+  });
+  imageMode.addEventListener("input", () => {
+    if (imageMode.value === "replace" && !isUnlimitedPlan()) {
+      imageMode.value = "blur";
+      promptPaidUpgrade("Custom replacement image mode is part of Unlimited Bonk. See Pricing Preview to unlock it.", true);
+      syncSettings();
+      return;
+    }
+    syncSettings();
   });
   soundEnabled.addEventListener("change", () => {
     if (soundEnabled.value === "on" && !isUnlimitedPlan()) {
