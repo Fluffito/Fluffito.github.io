@@ -134,6 +134,10 @@
   }
 
   function openImagePicker() {
+    if (!isUnlimitedPlan()) {
+      promptPaidUpgrade("Custom replacement image uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
+      return;
+    }
     try {
       if (typeof imageFile.showPicker === "function") {
         imageFile.showPicker();
@@ -178,6 +182,10 @@
   }
 
   function handleImageFile(file) {
+    if (!isUnlimitedPlan()) {
+      promptPaidUpgrade("Custom replacement image uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
+      return;
+    }
     if (!file) return;
     if (!file.type || !file.type.startsWith("image/")) {
       setStatus("Please choose an image file.");
@@ -421,6 +429,10 @@
   ["dragenter", "dragover"].forEach((eventName) => {
     imageDropzone.addEventListener(eventName, (event) => {
       event.preventDefault();
+      if (!isUnlimitedPlan()) {
+        promptPaidUpgrade("Custom replacement image uploads are part of Unlimited Bonk. See Pricing Preview to unlock them.", true);
+        return;
+      }
       imageDropzone.classList.add("dragover");
     });
     soundDropzone.addEventListener(eventName, (event) => {
