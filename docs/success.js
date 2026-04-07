@@ -54,7 +54,7 @@
       }
 
       const buyerEmail = data?.email ? ` for ${data.email}` : "";
-      setStatus(`${data.licenseType || "Paid plan"} is ready${buyerEmail}. Copy the key below and paste it into the extension popup.`);
+      setStatus(`${data.licenseType || "Paid plan"} is ready${buyerEmail}. Copy the key below now and keep your purchase email as a backup for Restore Purchase.`);
     } catch (error) {
       console.warn("[aphelion success] automatic license lookup failed:", error);
       setStatus("Your payment can succeed before the key server is configured. Set your deployed APHELION server URL plus Stripe secret/price IDs, then retry this page — or use the manual key flow for now.", true);
