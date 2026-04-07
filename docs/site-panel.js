@@ -13,6 +13,8 @@
   const overlay = document.getElementById("siteMenuOverlay");
   const panel = document.getElementById("siteMenuPanel");
   const form = document.getElementById("siteSettingsForm");
+  const tabButtons = Array.from(document.querySelectorAll(".site-tab-btn"));
+  const tabPanels = Array.from(document.querySelectorAll(".site-tab-panel"));
   const censorGlyph = document.getElementById("siteCensorGlyph");
   const customGlyph = document.getElementById("siteCustomGlyph");
   const imageMode = document.getElementById("siteImageMode");
@@ -29,7 +31,7 @@
   const testBonkBtn = document.getElementById("siteTestBonkBtn");
   let syncTimer = null;
 
-  if (!menuToggle || !menuClose || !overlay || !panel || !form || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !status || !testBonkBtn) {
+  if (!menuToggle || !menuClose || !overlay || !panel || !form || !tabButtons.length || !tabPanels.length || !censorGlyph || !customGlyph || !imageMode || !replacementImageUrl || !imageDropzone || !imagePickerBtn || !imageResetBtn || !imagePreview || !imageFile || !soundEnabled || !soundVolume || !soundVolumeValue || !status || !testBonkBtn) {
     return;
   }
 
@@ -73,14 +75,26 @@
     imagePreview.style.display = "none";
   }
 
+  function openImagePicker() {
+    try {
+      if (typeof imageFile.showPicker === "function") {
+        imageFile.showPicker();
+      } else {
+        imageFile.click();
+      }
+    } catch (error) {
+      imageFile.click();
+    }
+  }
+
   function handleImageFile(file) {
     if (!file) return;
     if (!file.type || !file.type.startsWith("image/")) {
       setStatus("Please choose an image file.");
       return;
     }
-    if (file.size > 1_500_000) {
-      setStatus("Image is too large. Use an image under 1.5 MB.");
+    if (file.size > 5_000_000) {
+      setStatus("Image is too large. Use an image under 5 MB.");
       return;
     }
     const reader = new FileReader();
@@ -123,6 +137,19 @@
       imageBlockSoundEnabled: soundEnabled.value === "on",
       blockSoundVolume: Math.max(0, Math.min(1, (Number(soundVolume.value) || 65) / 100))
     };
+  }
+
+  function setActiveTab(name) {
+    tabButtons.forEach((button) => {
+      const isActive = button.dataset.tab === name;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    tabPanels.forEach((panelEl) => {
+      const isActive = panelEl.dataset.panel === name;
+      panelEl.classList.toggle("is-active", isActive);
+      panelEl.hidden = !isActive;
+    });
   }
 
   function openPanel() {
@@ -196,6 +223,12 @@
     }
   });
 
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveTab(button.dataset.tab || "general");
+    });
+  });
+
   menuToggle.addEventListener("click", openPanel);
   menuClose.addEventListener("click", closePanel);
   overlay.addEventListener("click", closePanel);
@@ -219,19 +252,24 @@
   });
 
   imageDropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
     const files = event.dataTransfer && event.dataTransfer.files;
     if (files && files[0]) handleImageFile(files[0]);
   });
-  imageDropzone.addEventListener("click", () => imageFile.click());
+  imageDropzone.addEventListener("click", (event) => {
+    if (event.target && event.target.closest("button")) return;
+    openImagePicker();
+  });
   imageDropzone.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      imageFile.click();
+      openImagePicker();
     }
   });
   imagePickerBtn.addEventListener("click", (event) => {
+    event.preventDefault();
     event.stopPropagation();
-    imageFile.click();
+    openImagePicker();
   });
   imageResetBtn.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -264,6 +302,7 @@
     }, "*");
   });
 
+  setActiveTab("general");
   applySettings(loadLocalSettings());
   setStatus("These controls save on the website and sync if APHELION is installed.");
   startSyncTimeout("Saved on the website. Install or refresh APHELION here to sync these settings into the extension.");

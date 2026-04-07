@@ -23,47 +23,59 @@
       <button id="siteMenuClose" class="site-menu-close" type="button" aria-label="Close settings">×</button>
     </div>
 
+    <div class="site-settings-tabs" role="tablist" aria-label="Website settings sections">
+      <button class="site-tab-btn is-active" type="button" data-tab="general" role="tab" aria-selected="true">General</button>
+      <button class="site-tab-btn" type="button" data-tab="images" role="tab" aria-selected="false">Images</button>
+      <button class="site-tab-btn" type="button" data-tab="sounds" role="tab" aria-selected="false">Sounds</button>
+    </div>
+
     <form id="siteSettingsForm" class="site-settings-form">
-      <label for="siteCensorGlyph">Censor preset</label>
-      <select id="siteCensorGlyph">
-        <option value="✦✦✦">Stars (✦✦✦)</option>
-        <option value="****">Asterisks (****)</option>
-        <option value="[CENSORED]">[CENSORED]</option>
-        <option value="░░░░">Blocks (░░░░)</option>
-        <option value="🚫">No Entry (🚫)</option>
-      </select>
+      <section class="site-tab-panel is-active" data-panel="general" role="tabpanel">
+        <label for="siteCensorGlyph">Censor preset</label>
+        <select id="siteCensorGlyph">
+          <option value="✦✦✦">Stars (✦✦✦)</option>
+          <option value="****">Asterisks (****)</option>
+          <option value="[CENSORED]">[CENSORED]</option>
+          <option value="░░░░">Blocks (░░░░)</option>
+          <option value="🚫">No Entry (🚫)</option>
+        </select>
 
-      <label for="siteCustomGlyph">Custom censor text</label>
-      <input id="siteCustomGlyph" type="text" placeholder="e.g. [BLOCKED]" maxlength="20" autocomplete="off" />
+        <label for="siteCustomGlyph">Custom censor text</label>
+        <input id="siteCustomGlyph" type="text" placeholder="e.g. [BLOCKED]" maxlength="20" autocomplete="off" />
+      </section>
 
-      <label for="siteImageMode">Image blocking</label>
-      <select id="siteImageMode">
-        <option value="blur">Blur blocked images</option>
-        <option value="hide">Hide blocked images</option>
-        <option value="replace">Replace blocked images</option>
-      </select>
+      <section class="site-tab-panel" data-panel="images" role="tabpanel" hidden>
+        <label for="siteImageMode">Image blocking</label>
+        <select id="siteImageMode">
+          <option value="blur">Blur blocked images</option>
+          <option value="hide">Hide blocked images</option>
+          <option value="replace">Replace blocked images</option>
+        </select>
 
-      <label for="siteReplacementImageUrl">Custom replacement image</label>
-      <input id="siteReplacementImageUrl" type="text" placeholder="https://example.com/placeholder.png or data:image/..." autocomplete="off" />
-      <div id="siteImageDropzone" class="site-image-dropzone" tabindex="0" role="button" aria-label="Upload replacement image">
-        Drag and drop an image here
-        <small>or click to choose a file (PNG, JPG, WEBP, GIF)</small>
-        <div class="site-settings-actions">
-          <button id="siteImagePickerBtn" class="btn btn-secondary" type="button">Choose image file</button>
-          <button id="siteImageResetBtn" class="btn btn-secondary" type="button">Reset image</button>
+        <label for="siteReplacementImageUrl">Custom replacement image</label>
+        <input id="siteReplacementImageUrl" type="text" placeholder="https://example.com/placeholder.png or data:image/..." autocomplete="off" />
+        <div id="siteImageDropzone" class="site-image-dropzone" tabindex="0" role="button" aria-label="Upload replacement image">
+          Drag and drop an image here
+          <small>or click to choose a file (PNG, JPG, WEBP, GIF)</small>
+          <div class="site-settings-actions">
+            <button id="siteImagePickerBtn" class="btn btn-secondary" type="button">Choose image file</button>
+            <button id="siteImageResetBtn" class="btn btn-secondary" type="button">Reset image</button>
+          </div>
+          <img id="siteImagePreview" class="site-image-preview" alt="Replacement image preview" />
         </div>
-        <img id="siteImagePreview" class="site-image-preview" alt="Replacement image preview" />
-      </div>
-      <input id="siteImageFile" type="file" accept="image/*" hidden />
+        <input id="siteImageFile" class="site-hidden-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" />
+      </section>
 
-      <label for="siteSoundEnabled">Bonk sounds</label>
-      <select id="siteSoundEnabled">
-        <option value="off">Off</option>
-        <option value="on">Play for word and image blocks</option>
-      </select>
+      <section class="site-tab-panel" data-panel="sounds" role="tabpanel" hidden>
+        <label for="siteSoundEnabled">Bonk sounds</label>
+        <select id="siteSoundEnabled">
+          <option value="off">Off</option>
+          <option value="on">Play for word and image blocks</option>
+        </select>
 
-      <label for="siteSoundVolume">Bonk volume <span id="siteSoundVolumeValue">65%</span></label>
-      <input id="siteSoundVolume" type="range" min="0" max="100" step="1" value="65" />
+        <label for="siteSoundVolume">Bonk volume <span id="siteSoundVolumeValue">65%</span></label>
+        <input id="siteSoundVolume" type="range" min="0" max="100" step="1" value="65" />
+      </section>
 
       <div class="site-settings-actions">
         <button class="btn btn-primary" type="submit">Save on web</button>
