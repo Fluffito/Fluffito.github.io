@@ -4,10 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Redirecting…</title>
-  <link rel="icon" type="image/png" href="./icons/icon48.png" />
+  <link id="siteFavicon" rel="icon" type="image/png" href="./icons/icon48.png" />
   <script>
     (function () {
-      var target = new URL("./docs/index.html", window.location.origin + "/");
+      var pathParts = window.location.pathname.split("/").filter(Boolean);
+      var isGitHubPages = /\.github\.io$/i.test(window.location.hostname);
+      var basePath = isGitHubPages && pathParts.length ? "/" + pathParts[0] + "/" : "/";
+      var siteBase = new URL(basePath, window.location.origin);
+      var target = new URL("docs/index.html", siteBase);
+      var favicon = document.getElementById("siteFavicon");
+      var homeLink = document.getElementById("homeLink");
+
+      if (favicon) {
+        favicon.href = new URL("icons/icon48.png", siteBase).toString();
+      }
+
+      if (homeLink) {
+        homeLink.href = target.toString();
+      }
+
       target.search = window.location.search;
       target.hash = window.location.hash;
       window.location.replace(target.toString());
@@ -15,6 +30,6 @@
   </script>
 </head>
 <body>
-  <p>This page moved. <a href="./docs/index.html">Open APHELION</a></p>
+  <p>This page moved. <a id="homeLink" href="./docs/index.html">Open APHELION</a></p>
 </body>
 </html>
