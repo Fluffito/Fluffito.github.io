@@ -27,7 +27,7 @@ function computeLicenseChecksum(seed) {
 
 function getLicenseCode(plan) {
   const key = String(plan || "").trim().toLowerCase();
-  return PLAN_CODES[key] || "MAX";
+  return PLAN_CODES[key] || null;
 }
 
 function buildLicenseSeed(planCode, buyerReference) {
@@ -42,6 +42,9 @@ function buildLicenseSeed(planCode, buyerReference) {
 
 function createLicenseKey(plan, buyerReference = "") {
   const planCode = getLicenseCode(plan);
+  if (!planCode) {
+    throw new Error(`UNKNOWN_PLAN: ${String(plan || "").trim() || "(empty)"}`);
+  }
   const seed = buildLicenseSeed(planCode, buyerReference);
   const checksum = computeLicenseChecksum(`${LICENSE_VERSION}-${planCode}-${seed}`);
   return `${LICENSE_VERSION}-${planCode}-${seed}-${checksum}`;
@@ -72,4 +75,45 @@ module.exports = {
   createLicenseKey,
   verifyLicenseKey
 };
+
+if (require.main === module) {
+  const [command = "generate", arg1 = "", arg2 = ""] = process.argv.slice(2);
+
+  try {
+    if (command === "generate") {
+      const plan = arg1 || "founder";
+      const buyerReference = arg2 || "developer";
+      const licenseKey = createLicenseKey(plan, buyerReference);
+      console.log(JSON.stringify({
+        ok: true,
+        command,
+        plan,
+        buyerReference,
+        licenseKey,
+        verification: verifyLicenseKey(licenseKey)
+      }, null, 2));
+      process.exit(0);
+    }
+
+    if (command === "verify") {
+      const verification = verifyLicenseKey(arg1);
+      if (!verification) {
+        console.error(JSON.stringify({ ok: false, command, error: "INVALID_LICENSE_KEY" }, null, 2));
+        process.exit(1);
+      }
+      console.log(JSON.stringify({ ok: true, command, verification }, null, 2));
+      process.exit(0);
+    }
+
+    console.error("Usage: node license-tools.js generate <plan> <buyerReference> | verify <licenseKey>");
+    process.exit(1);
+  } catch (error) {
+    console.error(JSON.stringify({
+      ok: false,
+      command,
+      error: error.message
+    }, null, 2));
+    process.exit(1);
+  }
+}
 
