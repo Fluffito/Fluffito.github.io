@@ -199,14 +199,14 @@
       <div class="support-title-row">
         <div>
           <div class="support-title">Website support spots</div>
-          <p class="support-copy" data-support-mode-note>These slots stay subtle by default and can later hold real sponsor or ad placements. No-Ads Kitsune swaps them into spinning foxes instead.</p>
+          <p class="support-copy" data-support-mode-note>These slots are ad-ready. Add your AdSense client and slot IDs to make them live, or keep them as subtle sponsor cards. No-Ads Kitsune swaps them into spinning foxes instead.</p>
         </div>
         <div class="support-badge" data-support-mode-badge>Support Mode</div>
       </div>
       <div class="support-grid">
-        <div class="support-card support-card--ad" data-aphelion-support-slot data-ad-label="Support Slot" data-ad-title="Quiet sponsor slot" data-ad-copy="Reserved for a subtle site ad, sponsor, or affiliate mention."></div>
-        <div class="support-card support-card--ad" data-aphelion-support-slot data-ad-label="Low-Noise Tile" data-ad-title="Recommended tools" data-ad-copy="A calm spot for a future partner link without turning the page into a mess."></div>
-        <div class="support-card support-card--ad" data-aphelion-support-slot data-ad-label="Creator Support" data-ad-title="Support APHELION" data-ad-copy="This space can highlight updates, supporters, or a small ad later on."></div>
+        <div class="support-card support-card--ad" data-aphelion-support-slot data-ad-network="adsense" data-adsense-slot="YOUR_SLOT_ID_1" data-ad-label="Ad Slot Ready" data-ad-title="Google AdSense slot" data-ad-copy="Drop in your publisher client and slot ID to turn this card into a live ad."></div>
+        <div class="support-card support-card--ad" data-aphelion-support-slot data-ad-network="manual" data-ad-label="Low-Noise Tile" data-ad-title="Recommended tools" data-ad-copy="A calm place for a future partner link without turning the page into a mess." data-ad-href="#pricing" data-ad-cta="See perks"></div>
+        <div class="support-card support-card--ad" data-aphelion-support-slot data-ad-network="manual" data-ad-label="Creator Support" data-ad-title="Support APHELION" data-ad-copy="Highlight updates, supporters, affiliates, or a small site promotion here." data-ad-href="#support" data-ad-cta="Support the foxes"></div>
       </div>
     </section>
 
@@ -216,7 +216,10 @@
       <p><small>Need a demo or want to support development? Keep this project bookmarked.</small></p>
     </footer>
   </div>
+  <script>
+    window.APHELION_ADSENSE_CLIENT = window.APHELION_ADSENSE_CLIENT || "";
+  </script>
   <script src="checkout.js?v=20260407c"></script>
-  <script src="site-panel.js?v=20260407b"></script>
+  <script src="site-panel.js?v=20260411a"></script>
 </body>
 </html>

@@ -87,17 +87,114 @@
       .replace(/'/g, "&#39;");
   }
 
+  function normalizeSupportHref(value) {
+    const href = String(value || "").trim();
+    if (!href) return "";
+    return /^(https?:\/\/|#|\/)/i.test(href) ? href : "";
+  }
+
+  function getAdSenseClient() {
+    return String(window.APHELION_ADSENSE_CLIENT || "").trim();
+  }
+
+  function isConfiguredAdSenseClient(client) {
+    return /^ca-pub-\d{6,}$/i.test(client);
+  }
+
+  let adSenseScriptPromise = null;
+
+  function ensureAdSenseScript(client) {
+    if (!isConfiguredAdSenseClient(client)) return Promise.resolve(false);
+    if (adSenseScriptPromise) return adSenseScriptPromise;
+
+    const existing = document.querySelector('script[data-aphelion-adsense="1"]');
+    if (existing) {
+      adSenseScriptPromise = Promise.resolve(true);
+      return adSenseScriptPromise;
+    }
+
+    adSenseScriptPromise = new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`;
+      script.setAttribute("data-aphelion-adsense", "1");
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      (document.head || document.documentElement).appendChild(script);
+    });
+
+    return adSenseScriptPromise;
+  }
+
+  function renderManualSupportCard(slot) {
+    const label = escapeHtml(slot.dataset.adLabel || "Support Slot");
+    const title = escapeHtml(slot.dataset.adTitle || "Quiet sponsor slot");
+    const copy = escapeHtml(slot.dataset.adCopy || "Reserved for a calm sponsor mention.");
+    const href = normalizeSupportHref(slot.dataset.adHref || "");
+    const cta = escapeHtml(slot.dataset.adCta || "Learn more");
+
+    slot.className = "support-card support-card--ad";
+    slot.innerHTML = `
+      <div class="support-card-label">${label}</div>
+      <div class="support-card-title">${title}</div>
+      <div class="support-card-copy">${copy}</div>
+      ${href ? `<a class="support-card-link" href="${escapeHtml(href)}">${cta}</a>` : ""}
+    `;
+  }
+
+  function renderAdSenseSlot(slot, client) {
+    const slotId = String(slot.dataset.adsenseSlot || "").trim();
+    const canRenderLiveAd = isConfiguredAdSenseClient(client)
+      && /^\d{6,}$/.test(slotId)
+      && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+      && window.location.protocol !== "file:";
+
+    if (!canRenderLiveAd) {
+      renderManualSupportCard(slot);
+      return;
+    }
+
+    slot.className = "support-card support-card--ad support-card--adsense";
+    slot.innerHTML = `
+      <div class="support-card-label">Sponsored</div>
+      <ins class="adsbygoogle"
+        style="display:block"
+        data-ad-client="${escapeHtml(client)}"
+        data-ad-slot="${escapeHtml(slotId)}"
+        data-ad-format="auto"
+        data-full-width-responsive="true"></ins>
+    `;
+
+    ensureAdSenseScript(client).then((loaded) => {
+      if (!loaded) {
+        renderManualSupportCard(slot);
+        return;
+      }
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (error) {
+        console.warn("[aphelion site] AdSense slot render failed:", error);
+      }
+    });
+  }
+
   function updateSupportSlots() {
     const noAdsActive = Boolean(hasNoAdsKitsune);
+    const adSenseClient = getAdSenseClient();
+    const adSenseReady = isConfiguredAdSenseClient(adSenseClient);
 
     if (supportModeNote) {
       supportModeNote.textContent = noAdsActive
         ? "No-Ads Kitsune is active on this browser, so the support spots below have been swapped for spinning foxes."
-        : "These slots stay subtle by default and can later hold real sponsor or ad placements. No-Ads Kitsune swaps them into spinning foxes instead.";
+        : adSenseReady
+          ? "Ads are live for regular visitors here, while No-Ads Kitsune swaps them into spinning foxes."
+          : "These slots are ad-ready. Add your AdSense client and slot IDs to make them live, or keep them as subtle sponsor cards. No-Ads Kitsune swaps them into spinning foxes instead.";
     }
 
     if (supportModeBadge) {
-      supportModeBadge.textContent = noAdsActive ? "Kitsune Mode Active" : "Support Mode";
+      supportModeBadge.textContent = noAdsActive ? "Kitsune Mode Active" : (adSenseReady ? "Ads Live" : "Support Mode");
+      supportModeBadge.classList.toggle("is-live", !noAdsActive && adSenseReady);
     }
 
     supportSlots.forEach((slot, index) => {
@@ -117,15 +214,12 @@
         return;
       }
 
-      const label = escapeHtml(slot.dataset.adLabel || "Support Slot");
-      const title = escapeHtml(slot.dataset.adTitle || "Quiet sponsor slot");
-      const copy = escapeHtml(slot.dataset.adCopy || "Reserved for a calm sponsor mention.");
-      slot.className = "support-card support-card--ad";
-      slot.innerHTML = `
-        <div class="support-card-label">${label}</div>
-        <div class="support-card-title">${title}</div>
-        <div class="support-card-copy">${copy}</div>
-      `;
+      if (String(slot.dataset.adNetwork || "").toLowerCase() === "adsense") {
+        renderAdSenseSlot(slot, adSenseClient);
+        return;
+      }
+
+      renderManualSupportCard(slot);
     });
   }
 
