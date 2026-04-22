@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "APHELION",
   "description": "Hide unwanted texts and images with APHELION in seconds; Built for everyone!",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage_url": "https://fluffito.github.io/",
   "minimum_chrome_version": "114",
   "icons": {
