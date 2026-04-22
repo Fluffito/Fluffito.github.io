@@ -289,7 +289,7 @@ let pendingBlockSound = false;
 let activeCustomBlockAudio = null;
 const FREE_IMAGE_LIMIT = 50;
 const PLAN_UNLIMITED = "unlimited-bonk";
-const UPGRADE_URL = "https://fluffito.github.io/#pricing";
+const UPGRADE_URL = "https://fluffito.github.io/APHELIION/#pricing";
 let imageLimitNoticeShown = false;
 let featureGateNoticeTimer = null;
 
@@ -1041,12 +1041,10 @@ if (typeof window !== "undefined") {
         "imageBlockSoundEnabled",
         "blockSoundDataUrl",
         "blockSoundVolume",
-        "planTier",
-        "noAdsKitsune"
+        "planTier"
       ], (res) => {
         const planTier = normalizePlanTier(res?.planTier);
         const paidUnlocked = planTier === PLAN_UNLIMITED;
-        const noAdsKitsune = Boolean(res?.noAdsKitsune);
         window.postMessage({
           sender: "aphelion-extension",
           type: "APHELION_WEBSITE_SETTINGS",
@@ -1057,8 +1055,7 @@ if (typeof window !== "undefined") {
             imageBlockSoundEnabled: paidUnlocked && Boolean(res?.imageBlockSoundEnabled),
             blockSoundDataUrl: paidUnlocked ? safeSoundUrl(res?.blockSoundDataUrl) : "",
             blockSoundVolume: normalizeSoundVolume(res?.blockSoundVolume),
-            planTier,
-            noAdsKitsune
+            planTier
           }
         }, "*");
       });
@@ -1068,10 +1065,9 @@ if (typeof window !== "undefined") {
     if (msg.type === "APHELION_WEBSITE_SAVE_SETTINGS") {
       const settings = msg.settings && typeof msg.settings === "object" ? msg.settings : {};
 
-      chrome.storage.local.get(["planTier", "noAdsKitsune"], (planRes) => {
+      chrome.storage.local.get(["planTier"], (planRes) => {
         const planTier = normalizePlanTier(planRes?.planTier);
         const paidUnlocked = planTier === PLAN_UNLIMITED;
-        const noAdsKitsune = Boolean(planRes?.noAdsKitsune);
         const wantsPaidSound = Boolean(settings.imageBlockSoundEnabled) || Boolean(safeSoundUrl(settings.blockSoundDataUrl));
         const payload = {
           censorGlyph: typeof settings.censorGlyph === "string" && settings.censorGlyph.trim() ? settings.censorGlyph.trim().slice(0, 20) : "✦✦✦",
@@ -1092,8 +1088,7 @@ if (typeof window !== "undefined") {
             type: "APHELION_WEBSITE_SYNC_ACK",
             ok: !errorMessage,
             error: errorMessage,
-            planTier,
-            noAdsKitsune
+            planTier
           }, "*");
 
           if (!runtimeError) {

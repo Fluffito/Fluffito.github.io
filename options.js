@@ -63,7 +63,7 @@ if (typeof globalThis.browser !== "undefined" && globalThis.chrome === globalThi
 document.addEventListener("DOMContentLoaded", () => {
   const PLAN_FREE = "free";
   const PLAN_UNLIMITED = "unlimited-bonk";
-  const UPGRADE_URL = "https://fluffito.github.io/#pricing";
+  const UPGRADE_URL = "https://fluffito.github.io/APHELIION/#pricing";
   const DEFAULT_REPLACEMENT_IMAGE_URL = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360' viewBox='0 0 640 360'%3E%3Crect width='640' height='360' fill='%23111111'/%3E%3Ctext x='50%25' y='48%25' dominant-baseline='middle' text-anchor='middle' fill='%23c7b3ff' font-family='Arial,sans-serif' font-size='30'%3EAPHELION%3C/text%3E%3Ctext x='50%25' y='60%25' dominant-baseline='middle' text-anchor='middle' fill='%239a94c9' font-family='Arial,sans-serif' font-size='18'%3EBONKED%3C/text%3E%3C/svg%3E";
   const DEFAULT_BLOCK_SOUND_VOLUME = 0.65;
 
